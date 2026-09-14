@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#17324d">
+<title>BA Physical Fitness Assessment V3</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#eef2f5;color:#17232d}
+header{background:#17324d;color:white;padding:15px;position:sticky;top:0;z-index:20}
+header h1{margin:0;font-size:20px}header small{opacity:.82}
+main{max-width:1100px;margin:auto;padding:12px}.tabs{display:flex;gap:5px;margin-bottom:12px}.tabs button{flex:1}
+button,input,select{font:inherit;border-radius:9px;border:1px solid #bcc8d1;padding:10px}
+button{background:#17324d;color:white;border:0;font-weight:bold;cursor:pointer}.secondary{background:#e6edf1;color:#17324d}.danger{background:#a02f2f}
+.card{background:#fff;border:1px solid #d7dee5;border-radius:14px;padding:15px;margin-bottom:12px;box-shadow:0 2px 8px #0000000b}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}@media(min-width:800px){.grid{grid-template-columns:repeat(4,1fr)}}
+label{font-size:12px;font-weight:bold;color:#53616d;display:block;margin-bottom:4px}.full{grid-column:1/-1}
+.station{border:1px solid #d7dee5;border-radius:12px;padding:12px;margin:9px 0}.stationtop{display:flex;justify-content:space-between;align-items:center;gap:8px}.title{font-weight:bold}.sub{font-size:12px;color:#64727d;margin-top:3px}.score{font-size:23px;font-weight:bold;color:#17324d}
+.rawrow{display:flex;gap:7px;margin-top:9px}.rawrow input{flex:1}.rawrow button{width:76px}
+.big{font-size:38px;font-weight:bold;color:#17324d}.pill{display:inline-block;border-radius:999px;padding:5px 9px;background:#e9eef2;font-size:12px;font-weight:bold;margin:2px}
+.metric{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e0e5e9}
+.hidden{display:none}.notice{background:#eef6fb;border-left:4px solid #24577a;padding:10px;font-size:12px;border-radius:5px}
+.actions{display:flex;gap:7px;flex-wrap:wrap}.actions button{flex:1;min-width:130px}
+.tablewrap{overflow:auto;max-height:560px}table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:7px;border-bottom:1px solid #dce2e7;text-align:left;white-space:nowrap}th{background:#f0f4f7;position:sticky;top:0}
+.dashboard{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}@media(min-width:700px){.dashboard{grid-template-columns:repeat(4,1fr)}}
+.kpi{background:#f4f7f9;border-radius:11px;padding:12px}.kpi b{display:block;font-size:25px;color:#17324d}.muted{font-size:12px;color:#687782}.center{text-align:center}
+.bar{height:9px;background:#e0e7eb;border-radius:8px;overflow:hidden}.bar span{display:block;height:100%;background:#24577a}
+canvas{max-width:100%;background:white;border:1px solid #e0e5e9;border-radius:10px}
+.smallbtn{padding:7px;font-size:12px}
+</style>
+</head>
+<body>
+<header><h1 id="appTitle">BA Physical Fitness Assessment</h1><small>Ultimate V3 • 5 components • /50 • teacher dashboard</small></header>
+<main>
+<div class="tabs">
+<button onclick="tab('home')">Assessment</button><button onclick="tab('class')">Class</button><button onclick="tab('progress')">Progress</button><button onclick="tab('setup')">Setup</button><button onclick="tab('guide')">Guide</button>
+</div>
+
+<section id="home">
+<div class="card"><h2>Assessment setup</h2><div class="grid">
+<div><label>Grade</label><select id="grade" onchange="renderStations()"></select></div>
+<div><label>Sex</label><select id="sex" onchange="renderStations()"><option value="female">Girl</option><option value="male">Boy</option></select></div>
+<div><label>Term</label><select id="term"><option>Term 1</option><option>Term 2</option><option>Term 3</option><option>Term 4</option></select></div>
+<div><label>Class</label><select id="classSelect"></select></div>
+<div class="full"><label>Learner</label><select id="learnerSelect" onchange="loadLearner()"><option value="">-- Select learner --</option></select></div>
+<div class="full"><label>Or enter learner name</label><input id="learner" placeholder="First name and surname"></div>
+</div></div>
+
+<div class="card"><h2>Five stations</h2><div id="stations"></div>
+<div class="actions"><button onclick="save()">Save assessment</button><button class="secondary" onclick="clearAssessment()">Clear results</button><button class="secondary" onclick="nextLearner()">Next learner →</button></div></div>
+<div class="card"><h2>Live result</h2><div id="summary"><span class="pill">0/5 stations</span></div></div>
+</section>
+
+<section id="class" class="hidden">
+<div class="card"><h2>Class dashboard</h2><div class="dashboard" id="kpis"></div><div style="margin-top:12px" id="classBars"></div></div>
+<div class="card"><h2>Results</h2><div class="actions"><button onclick="exportCSV()">Export CSV / Excel</button><button onclick="printClass()">Print report</button><button onclick="printCertificates()">Print certificates</button><button class="danger" onclick="deleteSelected()">Delete selected</button></div>
+<div class="tablewrap" id="classTable" style="margin-top:10px"></div></div>
+</section>
+
+<section id="progress" class="hidden">
+<div class="card"><h2>Learner progress</h2><label>Learner</label><select id="progressLearner" onchange="renderProgress()"></select><div id="progressView" style="margin-top:12px"></div></div>
+</section>
+
+<section id="setup" class="hidden">
+<div class="card"><h2>School & teacher</h2><div class="grid">
+<div><label>School name</label><input id="schoolName" placeholder="School name"></div>
+<div><label>Teacher / HOD</label><input id="teacherName" placeholder="Teacher name"></div>
+<div><label>Assessment year</label><input id="year" type="number" value="2026"></div>
+<div><label>Class name to create</label><input id="newClass" placeholder="e.g. Grade 4A"></div>
+</div><div class="actions" style="margin-top:10px"><button onclick="saveSetup()">Save setup</button><button class="secondary" onclick="addClass()">Add class</button></div></div>
+<div class="card"><h2>Learner list</h2><p class="muted">Paste one learner per line. This replaces the selected class list.</p><textarea id="roster" style="width:100%;min-height:180px;border:1px solid #bcc8d1;border-radius:9px;padding:10px;font:inherit" placeholder="John Smith&#10;Sarah Jones&#10;..."></textarea><button style="margin-top:8px" onclick="saveRoster()">Save roster</button></div>
+<div class="card"><h2>Data backup</h2><div class="actions"><button onclick="backup()">Download backup JSON</button><button class="secondary" onclick="document.getElementById('restore').click()">Restore backup</button><input id="restore" type="file" accept=".json" hidden onchange="restore(event)"></div></div>
+</section>
+
+<section id="guide" class="hidden"><div class="card"><h2>Five-component framework</h2>
+<table><tr><th>Component</th><th>Station</th><th>Record</th><th>Score</th></tr>
+<tr><td>Cardiovascular endurance</td><td>6-minute walk/run</td><td>metres</td><td>/10</td></tr>
+<tr><td>Muscular strength</td><td>Push-ups</td><td>quality reps</td><td>/10</td></tr>
+<tr><td>Speed</td><td>20 m sprint (10 m Grade R)</td><td>seconds</td><td>/10</td></tr>
+<tr><td>Flexibility</td><td>Sit-and-reach</td><td>cm</td><td>/10</td></tr>
+<tr><td>Muscular endurance</td><td>Curl-ups</td><td>quality reps</td><td>/10</td></tr></table>
+<p class="notice"><b>Professional scoring note:</b> These are prototype school standards, not validated clinical or national norms. Before formal reporting, pilot the tests, document protocols, collect your school's results and adjust the cut scores with appropriate professional oversight.</p>
+</div></section>
+<div class="center muted">Local-first app: data remains on this device unless you export it.</div>
+</main>
+
+<script>
+const standards={
+R:{cardio:[350,450,550,650,750,850,950,1050,1150,1250],strength:[3,5,7,9,11,13,15,17,19,21],speed:[4.8,4.4,4.1,3.9,3.7,3.5,3.3,3.1,2.9,2.7],flex:[10,12,14,16,18,20,22,24,26,28],mend:[5,7,9,11,13,15,17,19,21,23]},
+1:{cardio:[450,550,650,750,850,950,1050,1150,1250,1350],strength:[4,6,8,10,12,14,16,18,20,22],speed:[6.4,6.1,5.8,5.5,5.2,4.9,4.6,4.3,4,3.7],flex:[12,14,16,18,20,22,24,26,28,30],mend:[7,9,11,13,15,17,19,21,23,25]},
+2:{cardio:[500,600,700,800,900,1000,1100,1200,1300,1400],strength:[5,7,9,11,13,15,17,19,21,23],speed:[6.1,5.8,5.5,5.2,4.9,4.6,4.3,4,3.7,3.4],flex:[13,15,17,19,21,23,25,27,29,31],mend:[9,11,13,15,17,19,21,23,25,27]},
+3:{cardio:[550,650,750,850,950,1050,1150,1250,1350,1450],strength:[6,8,10,12,14,16,18,20,22,24],speed:[5.8,5.5,5.2,4.9,4.6,4.3,4.1,3.9,3.7,3.5],flex:[14,16,18,20,22,24,26,28,30,32],mend:[10,12,14,16,18,20,22,24,26,28]},
+4:{cardio:[650,750,850,950,1050,1150,1250,1350,1450,1550],strength:[8,10,12,14,16,18,20,22,24,26],speed:[5.5,5.2,4.9,4.6,4.3,4.1,3.9,3.7,3.5,3.3],flex:[15,17,19,21,23,25,27,29,31,33],mend:[12,14,16,18,20,22,24,26,28,30]},
+5:{cardio:[750,850,950,1050,1150,1250,1350,1450,1550,1650],strength:[10,12,14,16,18,20,22,24,26,28],speed:[5.2,4.9,4.6,4.3,4.1,3.9,3.7,3.5,3.3,3.1],flex:[16,18,20,22,24,26,28,30,32,34],mend:[14,16,18,20,22,24,26,28,30,32]},
+6:{cardio:[850,950,1050,1150,1250,1350,1450,1550,1650,1750],strength:[12,14,16,18,20,22,24,26,28,30],speed:[5,4.7,4.4,4.1,3.9,3.7,3.5,3.3,3.1,2.9],flex:[17,19,21,23,25,27,29,31,33,35],mend:[16,18,20,22,24,26,28,30,32,34]},
+7:{cardio:[950,1050,1150,1250,1350,1450,1550,1650,1750,1850],strength:[14,16,18,20,22,24,26,28,30,32],speed:[4.8,4.5,4.2,4,3.8,3.6,3.4,3.2,3,2.8],flex:[18,20,22,24,26,28,30,32,34,36],mend:[18,20,22,24,26,28,30,32,34,36]}};
+const factor={male:{cardio:1.03,strength:1.05,speed:.98,flex:1,mend:1.05},female:{cardio:.97,strength:.95,speed:1.02,flex:1,mend:.95}};
+const stations=[
+["cardio","Cardiovascular endurance","6-minute walk/run","metres","🫀"],
+["strength","Muscular strength","Push-ups","quality reps","💪"],
+["speed","Speed","20 m sprint","seconds","🏃"],
+["flex","Flexibility","Sit-and-reach","cm","🤸"],
+["mend","Muscular endurance","Curl-ups","quality reps","🔁"]];
+const $=id=>document.getElementById(id);
+function getSettings(){return JSON.parse(localStorage.baSettings||'{"school":"","teacher":"","year":2026,"classes":{}}')}
+function saveSettings(s){localStorage.baSettings=JSON.stringify(s)}
+function classes(){return getSettings().classes||{}}
+function results(){return JSON.parse(localStorage.baResults||"[]")}
+function score(k,v){if(v===""||isNaN(v))return 0;let g=$("grade").value,t=standards[g][k].map(x=>x*factor[$("sex").value][k]),x=+v,s=0;if(k==="speed"){for(let i=0;i<10;i++)if(x<=t[i]){s=i+1;break}}else{for(let i=0;i<10;i++)if(x>=t[i])s=i+1}return Math.max(1,s)}
+function renderStations(){ $("stations").innerHTML=stations.map(([k,l,n,u,ic])=>`<div class="station"><div class="stationtop"><div><div class="title">${ic} ${l}</div><div class="sub">${n} • ${u}</div></div><div class="score" id="s_${k}">–/10</div></div><div class="rawrow"><input id="r_${k}" inputmode="decimal" placeholder="Raw result" oninput="live()"><button class="secondary" onclick="$('r_${k}').value='';live()">Clear</button></div></div>`).join("");live()}
+function live(){let total=0,n=0;stations.forEach(([k])=>{let v=$("r_"+k).value,s=score(k,v);if(v!=="")n++;total+=s;$("s_"+k).textContent=v!==""?s+"/10":"–/10"});if(n<5){$("summary").innerHTML=`<span class="pill">${n}/5 stations completed</span>`;return}let pct=total*2; $("summary").innerHTML=`<div class="big">${total}/50</div><div><b>${pct}%</b> • ${level(pct)}</div>`+stations.map(([k,l])=>`<div class="metric"><span>${l}</span><b>${score(k,$("r_"+k).value)}/10</b></div>`).join("")}
+function level(p){return p>=90?"Exceptional":p>=80?"Excellent":p>=70?"Good":p>=60?"Developing":"Needs Development"}
+function populate(){let s=getSettings();$("schoolName").value=s.school||"";$("teacherName").value=s.teacher||"";$("year").value=s.year||2026;for(let g in standards)$("grade").innerHTML+=`<option>${g}</option>`;refreshClasses();renderStations()}
+function refreshClasses(){let c=classes(),names=Object.keys(c);if(!names.length)c["General"]={learners:[]},saveSettings({...getSettings(),classes:c});names=Object.keys(classes());$("classSelect").innerHTML=names.map(n=>`<option>${esc(n)}</option>`).join("");loadRoster()}
+function loadRoster(){let c=classes()[$("classSelect").value]||{learners:[]};$("learnerSelect").innerHTML=`<option value="">-- Select learner --</option>`+c.learners.map(n=>`<option>${esc(n)}</option>`).join("");$("roster").value=c.learners.join("\\n")}
+function saveSetup(){let s=getSettings();s.school=$("schoolName").value;s.teacher=$("teacherName").value;s.year=+$("year").value||2026;saveSettings(s);$("appTitle").textContent=s.school?`${s.school} • Physical Fitness Assessment`:"BA Physical Fitness Assessment";alert("Setup saved.")}
+function addClass(){let n=$("newClass").value.trim();if(!n)return alert("Enter a class name.");let s=getSettings();s.classes=s.classes||{};if(!s.classes[n])s.classes[n]={learners:[]};saveSettings(s);refreshClasses();$("classSelect").value=n;loadRoster();$("newClass").value=""}
+$("classSelect").addEventListener("change",loadRoster)
+function saveRoster(){let s=getSettings(),n=$("classSelect").value;let learners=$("roster").value.split(/\\n|,/).map(x=>x.trim()).filter(Boolean);s.classes[n]={learners:[...new Set(learners)]};saveSettings(s);refreshClasses();alert("Roster saved.")}
+function loadLearner(){let n=$("learnerSelect").value;if(n)$("learner").value=n}
+function clearAssessment(){stations.forEach(([k])=>$("r_"+k).value="");$("learner").value="";$("learnerSelect").value="";live()}
+function nextLearner(){let sel=$("learnerSelect"),i=sel.selectedIndex;if(i<sel.options.length-1){sel.selectedIndex=i+1;loadLearner();clearRaw()}else alert("No more learners in this class.")}
+function clearRaw(){stations.forEach(([k])=>$("r_"+k).value="");live()}
+function save(){let name=$("learner").value.trim();if(!name)return alert("Select or enter a learner.");let raw={},scores={},ok=true;stations.forEach(([k])=>{raw[k]=$("r_"+k).value;if(raw[k]===""||isNaN(raw[k]))ok=false;scores[k]=score(k,raw[k])});if(!ok)return alert("Enter all five raw results.");let total=Object.values(scores).reduce((a,b)=>a+b,0),pct=total*2;let a=results();a.push({id:Date.now(),date:new Date().toLocaleDateString(),name,grade:$("grade").value,sex:$("sex").value,term:$("term").value,className:$("classSelect").value,raw,scores,total,pct,level:level(pct)});localStorage.baResults=JSON.stringify(a);alert(`${name} saved: ${total}/50 (${pct}%)`);renderClass();renderProgressList();nextLearner()}
+function renderClass(){let a=results().filter(x=>x.className===$("classSelect").value);if(!a.length){$("kpis").innerHTML="<div class='kpi'><span>Results</span><b>0</b></div>";$("classBars").innerHTML="";$("classTable").innerHTML="<p class='muted'>No results for this class.</p>";return}let avg=Math.round(a.reduce((s,x)=>s+x.pct,0)/a.length),best=Math.max(...a.map(x=>x.pct));$("kpis").innerHTML=`<div class=kpi><span>Results</span><b>${a.length}</b></div><div class=kpi><span>Average</span><b>${avg}%</b></div><div class=kpi><span>Highest</span><b>${best}%</b></div><div class=kpi><span>≥70%</span><b>${a.filter(x=>x.pct>=70).length}</b></div>`;let av={};stations.forEach(([k,l])=>av[k]=Math.round(a.reduce((s,x)=>s+x.scores[k],0)/a.length*10)/10);$("classBars").innerHTML=stations.map(([k,l])=>`<div style="margin:7px 0"><b>${l}</b> — ${av[k]}/10<div class=bar><span style="width:${av[k]*10}%"></span></div></div>`).join("");$("classTable").innerHTML="<table><tr><th>Select</th><th>Name</th><th>Grade</th><th>Term</th><th>Cardio</th><th>Strength</th><th>Speed</th><th>Flex</th><th>Endurance</th><th>Total</th><th>%</th><th>Level</th></tr>"+a.map(x=>`<tr><td><input type=checkbox class=pick data-id=${x.id}></td><td>${esc(x.name)}</td><td>${x.grade}</td><td>${x.term.replace("Term ","T")}</td><td>${x.scores.cardio}</td><td>${x.scores.strength}</td><td>${x.scores.speed}</td><td>${x.scores.flex}</td><td>${x.scores.mend}</td><td>${x.total}/50</td><td>${x.pct}%</td><td>${x.level}</td></tr>`).join("")+"</table>"}
+function deleteSelected(){let ids=[...document.querySelectorAll(".pick:checked")].map(x=>+x.dataset.id);if(!ids.length)return alert("Select results first.");if(confirm("Delete selected results?")){localStorage.baResults=JSON.stringify(results().filter(x=>!ids.includes(x.id)));renderClass();renderProgressList()}}
+function renderProgressList(){let names=[...new Set(results().map(x=>x.name))];$("progressLearner").innerHTML=names.length?names.map(n=>`<option>${esc(n)}</option>`).join(""):"<option>No saved learners</option>";renderProgress()}
+function renderProgress(){let n=$("progressLearner").value,a=results().filter(x=>x.name===n).sort((p,q)=>p.id-q.id);if(!a.length){$("progressView").innerHTML="<p class=muted>Save results to see progress.</p>";return}let h="<table><tr><th>Term</th><th>Grade</th><th>Total</th><th>%</th><th>Cardio</th><th>Strength</th><th>Speed</th><th>Flex</th><th>Endurance</th></tr>";a.forEach(x=>h+=`<tr><td>${x.term}</td><td>${x.grade}</td><td>${x.total}/50</td><td>${x.pct}%</td><td>${x.scores.cardio}</td><td>${x.scores.strength}</td><td>${x.scores.speed}</td><td>${x.scores.flex}</td><td>${x.scores.mend}</td></tr>`);h+="</table>";let first=a[0],last=a[a.length-1];h+=`<p><b>Change from first saved assessment:</b> ${last.pct-first.pct>=0?"+":""}${last.pct-first.pct} percentage points.</p><canvas id=chart width=800 height=250></canvas>`;$("progressView").innerHTML=h;drawChart(a)}
+function drawChart(a){let c=$("chart"),ctx=c.getContext("2d"),w=c.width,h=c.height;ctx.clearRect(0,0,w,h);ctx.strokeStyle="#9aa7b0";ctx.beginPath();ctx.moveTo(45,15);ctx.lineTo(45,h-35);ctx.lineTo(w-15,h-35);ctx.stroke();ctx.font="12px Arial";a.forEach((x,i)=>{let xx=60+i*(w-90)/Math.max(1,a.length-1),yy=h-35-(x.pct/100)*(h-55);ctx.fillStyle="#24577a";ctx.beginPath();ctx.arc(xx,yy,5,0,Math.PI*2);ctx.fill();ctx.fillText(x.term.replace("Term ","T"),xx-10,h-15);ctx.fillText(x.pct+"%",xx-15,yy-10)})}
+function exportCSV(){let a=results().filter(x=>x.className===$("classSelect").value);if(!a.length)return alert("No results.");let h=["Date","Name","Grade","Sex","Term","Class","Cardio raw","Cardio /10","Strength raw","Strength /10","Speed raw","Speed /10","Flex raw","Flex /10","Endurance raw","Endurance /10","Total /50","Percent","Level"];let rows=a.map(x=>[x.date,x.name,x.grade,x.sex,x.term,x.className,x.raw.cardio,x.scores.cardio,x.raw.strength,x.scores.strength,x.raw.speed,x.scores.speed,x.raw.flex,x.scores.flex,x.raw.mend,x.scores.mend,x.total,x.pct,x.level]);let csv=[h,...rows].map(r=>r.map(v=>`"${String(v??"").replaceAll('"','""')}"`).join(",")).join("\\n");let u=URL.createObjectURL(new Blob([csv],{type:"text/csv"})),a1=document.createElement("a");a1.href=u;a1.download="BA_Physical_Fitness_Results.csv";a1.click()}
+function printClass(){let s=getSettings(),a=results().filter(x=>x.className===$("classSelect").value),w=window.open("");w.document.write(`<html><head><title>Class Report</title><style>body{font-family:Arial}table{border-collapse:collapse;width:100%;font-size:10px}th,td{border:1px solid #aaa;padding:5px}</style></head><body><h1>${esc(s.school||"BA")} – Physical Fitness Report</h1><p>Teacher: ${esc(s.teacher)} | Class: ${esc($("classSelect").value)} | Year: ${s.year}</p>${$("classTable").innerHTML}</body></html>`);w.document.close();w.print()}
+function printCertificates(){let a=results().filter(x=>x.className===$("classSelect").value),s=getSettings();if(!a.length)return alert("No results.");let w=window.open("");w.document.write(`<html><head><title>Certificates</title><style>body{font-family:Arial}.cert{height:90vh;border:10px solid #17324d;margin:15px;padding:70px;text-align:center;page-break-after:always}.name{font-size:36px;font-weight:bold}.mark{font-size:28px;margin:25px}</style></head><body>${a.map(x=>`<div class=cert><h1>${esc(s.school||"Physical Fitness Assessment")}</h1><p>Certificate of Physical Fitness Achievement</p><div class=name>${esc(x.name)}</div><div class=mark>${x.total}/50 • ${x.pct}% • ${x.level}</div><p>Grade ${x.grade} • ${x.term}</p><p>${esc(s.teacher||"Teacher")}</p></div>`).join("")}</body></html>`);w.document.close();w.print()}
+function backup(){let data={settings:getSettings(),results:results()};let u=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"})),a=document.createElement("a");a.href=u;a.download="BA_Fitness_Backup.json";a.click()}
+function restore(e){let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let d=JSON.parse(r.result);if(d.settings)localStorage.baSettings=JSON.stringify(d.settings);if(d.results)localStorage.baResults=JSON.stringify(d.results);populate();renderClass();renderProgressList();alert("Backup restored.")}catch(err){alert("Invalid backup file.")}};r.readAsText(f)}
+function tab(t){["home","class","progress","setup","guide"].forEach(x=>$(x).classList.toggle("hidden",x!==t));if(t==="class")renderClass();if(t==="progress")renderProgressList();if(t==="setup"){let s=getSettings();$("schoolName").value=s.school||"";$("teacherName").value=s.teacher||"";$("year").value=s.year||2026}if(t==="home")loadRoster()}
+function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+populate();
+</script></body></html>
